@@ -55,25 +55,27 @@ export async function postComment(
         break;
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Could not find existing comment", e);
+  }
 
-  // if (commentId) {
-  //   try {
-  //     await github.rest.issues.updateComment({
-  //       ...issue,
-  //       comment_id: commentId,
-  //       body: newComment.body,
-  //     });
-  //   } catch (e) {
-  //     commentId = null;
-  //   }
-  // }
+  if (commentId) {
+    try {
+      await github.rest.issues.updateComment({
+        ...issue,
+        comment_id: commentId,
+        body: newComment.body,
+      });
+    } catch (e) {
+      commentId = null;
+    }
+  }
 
   if (!commentId) {
     try {
       await github.rest.issues.createComment(newComment);
     } catch (e) {
-      console.log(`Error creating comment: ${e}`);
+      console.error("Error creating comment", e);
     }
   }
   endGroup();

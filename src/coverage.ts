@@ -1,8 +1,12 @@
 import { Lcov, LcovDigest, parse, sum } from "lcov-utils";
 import { readFileSync } from "node:fs";
 import { stepResponse } from "./main";
+import { endGroup, startGroup } from "@actions/core";
 
-export const coverage = (oldCoverage: number | undefined): stepResponse => {
+export const getCoverage = (oldCoverage: number | undefined): stepResponse => {
+  startGroup("Checking test coverage");
+  let response: stepResponse | undefined;
+
   try {
     const contents = readFileSync("coverage/lcov.info", "utf8");
     const lcov: Lcov = parse(contents);
@@ -39,13 +43,27 @@ export const coverage = (oldCoverage: number | undefined): stepResponse => {
     </details>`;
     return { output: str, error: false };
   } catch (error) {
-    return { output: "⚠️ - Coverage check failed", error: true };
+    response = { output: "⚠️ - Coverage check failed", error: true };
+  } finally {
+    if (response == undefined) {
+      response = { output: "⚠️ - Coverage check failed", error: true };
+    }
   }
+  endGroup();
+  return response;
 };
 
-export const getOldCoverage = (): number => {
-  const contents = readFileSync("coverage/lcov.info", "utf8");
-  const lcov: Lcov = parse(contents);
-  const digest: LcovDigest = sum(lcov);
-  return digest.lines;
+export const getOldCoverage = (): number | undefined => {
+  let value: number | undefined;
+  startGroup("Retrieving existing coverage value");
+  try {
+    const contents = readFileSync("coverage/lcov.info", "utf8");
+    const lcov: Lcov = parse(contents);
+    const digest: LcovDigest = sum(lcov);
+    value = digest.lines;
+  } catch (e) {
+    console.error("Unable to find existing coverage report.", e);
+  }
+  endGroup();
+  return value;
 };

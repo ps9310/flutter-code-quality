@@ -1,29 +1,25 @@
-import { execSync } from "node:child_process";
-import { endGroup, getInput, startGroup } from "@actions/core";
+import { getInput } from "@actions/core";
 import { getAnalyze } from "./analyze";
-import { coverage as getCoverage, getOldCoverage } from "./coverage";
-import { test as getTest } from "./test";
+import { getCoverage, getOldCoverage } from "./coverage";
+import { getTest } from "./test";
 import { getOctokit, context } from "@actions/github";
 import { createComment, postComment } from "./comment";
+import { setup } from "./setup";
 
 const run = async () => {
   const token = process.env.GITHUB_TOKEN || getInput("token");
   const octokit = getOctokit(token);
 
-  startGroup("Set up Flutter");
-  execSync("flutter pub get");
-  execSync("dart format . -l 120");
-  execSync("dart fix --apply");
-  endGroup();
+  await setup();
 
-  const oldCoverage: number = getOldCoverage();
-
-  const analyzeStr: stepResponse = getAnalyze();
-  const testStr: stepResponse = getTest();
-  const coverageStr: stepResponse = getCoverage(oldCoverage);
-
+  const oldCoverage: number | undefined = getOldCoverage();
+  const analyzeStr: stepResponse = await getAnalyze();
+  const testStr: stepResponse = await getTest();
+  const coverageStr: stepResponse = await getCoverage(oldCoverage);
+  // const comment = `Test comment, ${Date.now().toLocaleString("en_GB")}
+  // <sub>Created with <a href='https://github.com/ZebraDevs/flutter-code-quality'>Flutter code quality action</a></sub>
+  //     }`;
   const comment = createComment(analyzeStr, testStr, coverageStr);
-
   postComment(octokit, comment, context);
 };
 

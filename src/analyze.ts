@@ -1,52 +1,52 @@
-import { execSync } from "node:child_process";
+import { exec } from "@actions/exec";
 import type { stepResponse } from "./main";
+import { endGroup, startGroup } from "@actions/core";
 
-export const getAnalyze = (): stepResponse => {
+export const getAnalyze = async (): Promise<stepResponse> => {
+  startGroup("Analyzing code");
+  let response: stepResponse | undefined;
+  let stdout: string = "";
   try {
-    execSync("dart analyze", { encoding: "utf-8" });
-    return { output: "✅ - Static analysis passed", error: false };
+    await exec("dart analyze", [], {
+      listeners: {
+        stdout: (data) => (stdout += data.toString()),
+      },
+    });
+    response = { output: "✅ - Static analysis passed", error: false };
   } catch (error) {
-    if ((error as any).stdout) {
-      const stdout = (error as any).stdout;
-      const arr = stdout.trim().split("\n");
-      const issuesList = arr.slice(2, -2).map((e: string) =>
+    const arr = stdout.trim().split("\n");
+
+    const errors: _err[] = [];
+    const warnings: _err[] = [];
+    const infos: _err[] = [];
+
+    arr
+      .slice(2, -2)
+      .map((e: string) =>
         e
           .split("-")
           .slice(0, -1)
           .map((e: string) => e.trim())
-      );
-      const errors: string[] = [];
-      const warnings: string[] = [];
-      const infos: string[] = [];
-
-      issuesList.forEach((e: string) => {
+      )
+      .forEach((e: string[]) => {
+        const obj = { file: e[1], details: e[0] };
         if (e[0].toLowerCase() == "error") {
-          errors.push(e);
+          errors.push(obj);
         } else if (e[0].toLowerCase() == "warning") {
-          warnings.push(e);
+          warnings.push(obj);
         } else {
-          infos.push(e);
+          infos.push(obj);
         }
-      });
-      const errorString = errors.map((e) => {
-        return `<tr>
-                <td>⛔️</td><td>Error</td><td>${e[1]}</td><td>${e[2]}</td>
-            </tr>`;
-      });
-      const warningString = warnings.map((e) => {
-        return `<tr>
-                <td>⚠️</td><td>Warning</td><td>${e[1]}</td><td>${e[2]}</td>
-            </tr>`;
-      });
-      const infoString = infos.map((e) => {
-        return `<tr>
-                <td>ℹ️</td><td>Info</td><td>${e[1]}</td><td>${e[2]}</td>
-            </tr>`;
+        return;
       });
 
-      const issuesFound = arr.at(-1);
+    const errorString = errors.map((e) => generateTableRow(e, "error"));
+    const warningString = warnings.map((e) => generateTableRow(e, "warning"));
+    const infoString = infos.map((e) => generateTableRow(e, "info"));
 
-      const output = `⛔️ - Static analysis failed; ${issuesFound}</br>
+    const issuesFound = arr.at(-1);
+
+    const output = `⛔️ - Static analysis failed; ${issuesFound}</br>
         <details><summary>See details</summary>
         <table>
         <tr><th></th><th>Type</th><th>File name</th><th>Details</th></tr>${errorString.join(
@@ -54,8 +54,35 @@ export const getAnalyze = (): stepResponse => {
         )}${warningString.join("")}${infoString.join("")}</table></details>
         `;
 
-      return { output: output, error: true };
+    response = { output: output, error: true };
+  } finally {
+    if (response == undefined) {
+      response = { output: " - Error running analysis", error: true };
     }
   }
-  return { output: "⚠️ - Error running analysis", error: true };
+  endGroup();
+  return response;
 };
+
+type _err = {
+  file: string;
+  details: string;
+};
+
+type _errType = "error" | "warning" | "info";
+
+const _getErrEmoji = (errType: _errType) => {
+  switch (errType) {
+    case "error":
+      return "⛔️";
+    case "warning":
+      return "⚠️";
+    case "info":
+      return "ℹ️";
+  }
+};
+
+const generateTableRow = (err: _err, type: _errType) =>
+  `<tr><td>${_getErrEmoji(type)}</td><td>Error</td><td>${err.file}</td><td>${
+    err.details
+  }</td></tr>`;
