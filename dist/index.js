@@ -29188,6 +29188,72 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 1568:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getAnalyze = void 0;
+const node_child_process_1 = __nccwpck_require__(7718);
+const getAnalyze = () => {
+    try {
+        (0, node_child_process_1.execSync)("dart analyze", { encoding: "utf-8" });
+        return { output: "✅ - Static analysis passed", error: false };
+    }
+    catch (error) {
+        if (error.stdout) {
+            const stdout = error.stdout;
+            const arr = stdout.trim().split("\n");
+            const issuesList = arr.slice(2, -2).map((e) => e
+                .split("-")
+                .slice(0, -1)
+                .map((e) => e.trim()));
+            const errors = [];
+            const warnings = [];
+            const infos = [];
+            issuesList.forEach((e) => {
+                if (e[0].toLowerCase() == "error") {
+                    errors.push(e);
+                }
+                else if (e[0].toLowerCase() == "warning") {
+                    warnings.push(e);
+                }
+                else {
+                    infos.push(e);
+                }
+            });
+            const errorString = errors.map((e) => {
+                return `<tr>
+                <td>⛔️</td><td>Error</td><td>${e[1]}</td><td>${e[2]}</td>
+            </tr>`;
+            });
+            const warningString = warnings.map((e) => {
+                return `<tr>
+                <td>⚠️</td><td>Warning</td><td>${e[1]}</td><td>${e[2]}</td>
+            </tr>`;
+            });
+            const infoString = infos.map((e) => {
+                return `<tr>
+                <td>ℹ️</td><td>Info</td><td>${e[1]}</td><td>${e[2]}</td>
+            </tr>`;
+            });
+            const issuesFound = arr.at(-1);
+            const output = `⛔️ - Static analysis failed; ${issuesFound}</br>
+        <details><summary>See details</summary>
+        <table>
+        <tr><th></th><th>Type</th><th>File name</th><th>Details</th></tr>${errorString.join("")}${warningString.join("")}${infoString.join("")}</table></details>
+        `;
+            return { output: output, error: true };
+        }
+    }
+    return { output: "⚠️ - Error running analysis", error: true };
+};
+exports.getAnalyze = getAnalyze;
+
+
+/***/ }),
+
 /***/ 4752:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -29259,6 +29325,147 @@ async function postComment(github, commentMessage, context) {
     (0, core_1.endGroup)();
 }
 exports.postComment = postComment;
+
+
+/***/ }),
+
+/***/ 3918:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getOldCoverage = exports.coverage = void 0;
+const lcov_utils_1 = __nccwpck_require__(2818);
+const node_fs_1 = __nccwpck_require__(7561);
+const coverage = (oldCoverage) => {
+    try {
+        const contents = (0, node_fs_1.readFileSync)("coverage/lcov.info", "utf8");
+        const lcov = (0, lcov_utils_1.parse)(contents);
+        const digest = (0, lcov_utils_1.sum)(lcov);
+        const totalPercent = digest.lines;
+        let percentOutput;
+        const arr = Object.values(lcov).map((e) => {
+            const fileName = e.sf;
+            const percent = Math.round((e.lh / e.lf) * 1000) / 10;
+            const passing = percent > 96 ? "✅" : "⛔️";
+            return `<tr><td>${fileName}</td><td>${percent}%</td><td>${passing}</td></tr>`;
+        });
+        if (oldCoverage != undefined) {
+            if (oldCoverage > totalPercent) {
+                percentOutput = totalPercent + `% (🔻 down from ` + oldCoverage + `)`;
+            }
+            else if (oldCoverage < totalPercent) {
+                percentOutput = totalPercent + `% (👆 up from ` + oldCoverage + `)`;
+            }
+            else {
+                percentOutput = totalPercent + `% (no change)`;
+            }
+        }
+        else {
+            percentOutput = totalPercent + "%";
+        }
+        const str = `📈 - Code coverage: ${percentOutput}
+    <br>
+    <details><summary>See details</summary>
+    <table>
+    <tr><th>File Name</th><th>%</th><th>Passing?</th></tr>
+        ${arr.join("")}
+    </table>
+    </details>`;
+        return { output: str, error: false };
+    }
+    catch (error) {
+        return { output: "⚠️ - Coverage check failed", error: true };
+    }
+};
+exports.coverage = coverage;
+const getOldCoverage = () => {
+    const contents = (0, node_fs_1.readFileSync)("coverage/lcov.info", "utf8");
+    const lcov = (0, lcov_utils_1.parse)(contents);
+    const digest = (0, lcov_utils_1.sum)(lcov);
+    return digest.lines;
+};
+exports.getOldCoverage = getOldCoverage;
+
+
+/***/ }),
+
+/***/ 9685:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.test = void 0;
+const node_child_process_1 = __nccwpck_require__(7718);
+const test = () => {
+    try {
+        (0, node_child_process_1.execSync)("flutter test --coverage --reporter json", { encoding: "utf-8" });
+        return { output: "✅ - All tests passed", error: false };
+    }
+    catch (error) {
+        if (error.stdout) {
+            const stdout = error.stdout;
+            const objStr = "[" + stdout.split("\n").join(",").slice(0, -1) + "]";
+            const obj = JSON.parse(objStr);
+            let failIds = [];
+            obj.forEach((element) => {
+                if (element.type == "testDone" &&
+                    element.result.toLowerCase() == "error") {
+                    failIds.push(element.testID);
+                }
+            });
+            let initialString = "";
+            if (failIds.length > 1) {
+                initialString = `${failIds.length} tests failed`;
+            }
+            else if (failIds.length == 1) {
+                initialString = `${failIds.length} test failed`;
+            }
+            const errorString = [];
+            failIds.forEach((e1) => {
+                const allEntries = obj.filter((e) => (e.hasOwnProperty("testID") && e.testID == e1) ||
+                    (e.hasOwnProperty("test") &&
+                        e.test.hasOwnProperty("id") &&
+                        e.test.id == e1));
+                const entry1 = allEntries.find((e) => e.hasOwnProperty("test") && e.test.hasOwnProperty("id"));
+                let testName = "Error getting test name";
+                if (entry1) {
+                    testName = entry1.test.name.split("/test/").slice(-1);
+                }
+                const entry2 = allEntries.find((e) => e.hasOwnProperty("stackTrace") && e.stackTrace.length > 1);
+                const entry3 = allEntries.find((e) => e.hasOwnProperty("message") &&
+                    e.message.length > 1 &&
+                    e.message.includes("EXCEPTION CAUGHT BY FLUTTER"));
+                const entry4 = allEntries.find((e) => e.hasOwnProperty("error") && e.error.length > 1);
+                let testDetails = "Unable to get test details. Run flutter test to replicate";
+                if (entry2) {
+                    testDetails = entry2.stackTrace;
+                }
+                else if (entry3) {
+                    testDetails = entry3.message;
+                }
+                else if (entry4) {
+                    testDetails = entry4.error;
+                }
+                errorString.push("<details><summary>" +
+                    testName +
+                    "</br></summary>`" +
+                    testDetails +
+                    "`</details>");
+            });
+            const output = `⛔️ - ${initialString}</br >
+            <details><summary>See details</summary>
+              ${errorString.join("")}
+            </details>
+        `;
+            return { output: output, error: true };
+        }
+    }
+    return { output: "⚠️ - Error running tests", error: true };
+};
+exports.test = test;
 
 
 /***/ }),
@@ -29359,11 +29566,27 @@ module.exports = require("net");
 
 /***/ }),
 
+/***/ 7718:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:child_process");
+
+/***/ }),
+
 /***/ 5673:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:events");
+
+/***/ }),
+
+/***/ 7561:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs");
 
 /***/ }),
 
@@ -31110,6 +31333,363 @@ function parseParams (str) {
 module.exports = parseParams
 
 
+/***/ }),
+
+/***/ 2818:
+/***/ ((module) => {
+
+"use strict";
+
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/main/ts/index.ts
+var ts_exports = {};
+__export(ts_exports, {
+  LCOV: () => LCOV,
+  badge: () => badge,
+  badgeJson: () => badgeJson,
+  collide: () => collide,
+  defaultBadgeOptions: () => defaultBadgeOptions,
+  format: () => format,
+  merge: () => merge,
+  parse: () => parse,
+  sum: () => sum
+});
+module.exports = __toCommonJS(ts_exports);
+
+// src/main/ts/lcov.ts
+var EOR = "end_of_record";
+var parse = (input, { prefix = "" } = {}) => {
+  const lcov = {};
+  const blocks = input.split(EOR).slice(0, -1);
+  const _prefix = typeof prefix === "function" ? prefix : (v) => prefix + v;
+  for (const block of blocks) {
+    const entry = parseEntry(block);
+    entry.sf = _prefix(entry.sf);
+    lcov[entry.sf] = entry;
+  }
+  return lcov;
+};
+var parseEntry = (block) => {
+  const lines = block.trim().split("\n");
+  const entry = {
+    tn: "",
+    sf: "",
+    fn: [],
+    fnf: 0,
+    fnh: 0,
+    fnda: [],
+    da: [],
+    lf: 0,
+    lh: 0,
+    brda: [],
+    brf: 0,
+    brh: 0
+  };
+  for (const line of lines) {
+    const [key, value] = line.split(":");
+    const chunks = (value == null ? void 0 : value.split(",")) || [];
+    switch (key) {
+      case "TN":
+        entry.tn = value;
+        break;
+      case "SF":
+        entry.sf = value;
+        break;
+      case "FN":
+        entry.fn.push([+chunks[0], chunks[1]]);
+        break;
+      case "FNF":
+        entry.fnf = +value;
+        break;
+      case "FNH":
+        entry.fnh = +value;
+        break;
+      case "FNDA":
+        entry.fnda.push([+chunks[0], chunks[1]]);
+        break;
+      case "DA":
+        entry.da.push([+chunks[0], +chunks[1]]);
+        break;
+      case "LF":
+        entry.lf = +value;
+        break;
+      case "LH":
+        entry.lh = +value;
+        break;
+      case "BRDA":
+        entry.brda.push([+chunks[0], +chunks[1], +chunks[2], chunks[3] === "-" ? 0 : +chunks[3]]);
+        break;
+      case "BRF":
+        entry.brf = +value;
+        break;
+      case "BRH":
+        entry.brh = +value;
+        break;
+      default:
+        throw new Error(`Unknown LCOV statement: ${key}`);
+    }
+  }
+  return entry;
+};
+var formatEntry = (entry) => {
+  const {
+    tn,
+    sf,
+    fn,
+    fnh,
+    fnf,
+    fnda,
+    da,
+    lh,
+    lf,
+    brda,
+    brh,
+    brf
+  } = entry;
+  const chunks = [
+    `TN:${tn}`,
+    `SF:${sf}`,
+    fn.map(([c0, c1]) => `FN:${c0},${c1}`),
+    `FNF:${fnf}`,
+    `FNH:${fnh}`,
+    fnda.map(([c0, c1]) => `FNDA:${c0},${c1}`),
+    da.map(([c0, c1]) => `DA:${c0},${c1}`),
+    `LF:${lf}`,
+    `LH:${lh}`,
+    brda.map(([c0, c1, c2, c3]) => `BRDA:${c0},${c1},${c2},${c3 === 0 ? "-" : c3}`),
+    `BRF:${brf}`,
+    `BRH:${brh}`,
+    EOR
+  ].filter(Boolean).flat();
+  return chunks.join("\n");
+};
+var format = (lcov) => Object.values(lcov).sort(({ sf: a }, { sf: b }) => a.localeCompare(b)).map(formatEntry).join("\n");
+var mergeHits = (entries) => {
+  const hits = {};
+  for (const entry of entries) {
+    for (const [line, name] of entry.fn) {
+      hits[`fn,${line},${name}`] = 1;
+    }
+    for (const [line, count] of entry.da) {
+      hits[`da,${line}`] = Math.max(hits[`da,${line}`] || 0, count);
+    }
+    for (const [count, name] of entry.fnda) {
+      hits[`fnda,${name}`] = Math.max(hits[`fnda,${name}`] || 0, count);
+    }
+    for (const [line, blnum, brnum, count] of entry.brda) {
+      const key = `brda,${line},${blnum},${brnum}`;
+      hits[key] = Math.max(hits[key] || 0, count);
+    }
+  }
+  return hits;
+};
+var collide = (lcov, ...patches) => {
+  const result = {};
+  const prefixes = [];
+  for (const patch of patches) {
+    const [_lcov, prefix] = Array.isArray(patch) ? patch : [patch];
+    if (prefix) {
+      prefixes.push(prefix);
+    }
+    Object.assign(result, _lcov);
+  }
+  for (const [k, v] of Object.entries(lcov)) {
+    if (prefixes.some((prefix) => k.startsWith(prefix))) {
+      continue;
+    }
+    result[k] = v;
+  }
+  return result;
+};
+var merge = (...lcovs) => {
+  const sources = lcovs.reduce((m, lcov) => {
+    const entries = Object.values(lcov);
+    for (const entry of entries) {
+      const { sf } = entry;
+      if (!m[sf]) {
+        m[sf] = [];
+      }
+      m[sf].push(entry);
+    }
+    return m;
+  }, {});
+  return Object.values(sources).reduce((m, entries) => {
+    const hits = mergeHits(entries);
+    const first = entries[0];
+    let brf = 0;
+    let brh = 0;
+    let fnf = 0;
+    let fnh = 0;
+    let lf = 0;
+    let lh = 0;
+    const da = [];
+    const brda = [];
+    const fnda = [];
+    const fn = [];
+    for (const [key, count] of Object.entries(hits)) {
+      const [name, ...rest] = key.split(",");
+      switch (name) {
+        case "fn":
+          fn.push([+rest[0], rest[1]]);
+          break;
+        case "fnda":
+          fnda.push([count, rest[0]]);
+          fnf++;
+          count && fnh++;
+          break;
+        case "brda":
+          brda.push([+rest[0], +rest[1], +rest[2], count]);
+          brf++;
+          count && brh++;
+          break;
+        case "da":
+          da.push([+rest[0], count]);
+          lf++;
+          count && lh++;
+          break;
+      }
+    }
+    const fncount = fn.reduce((m2, [count, name]) => {
+      m2[name] = count;
+      return m2;
+    }, {});
+    fn.sort(([, a], [, b]) => fncount[a] - fncount[b]);
+    fnda.sort(([, a], [, b]) => fncount[a] - fncount[b]);
+    da.sort(([a], [b]) => a - b);
+    brda.sort(([a], [b]) => a - b);
+    m[first.sf] = __spreadProps(__spreadValues({}, first), {
+      fn,
+      fnda,
+      fnf,
+      fnh,
+      brda,
+      brf,
+      brh,
+      da,
+      lf,
+      lh
+    });
+    return m;
+  }, {});
+};
+var sum = (lcov, prefix) => {
+  if (typeof lcov === "string") {
+    return sum(parse(lcov), prefix);
+  }
+  let brf = 0;
+  let brh = 0;
+  let fnf = 0;
+  let fnh = 0;
+  let lf = 0;
+  let lh = 0;
+  for (const entry of Object.values(lcov)) {
+    if (prefix && !entry.sf.startsWith(prefix))
+      continue;
+    brf += entry.brf;
+    brh += entry.brh;
+    fnf += entry.fnf;
+    fnh += entry.fnh;
+    lf += entry.lf;
+    lh += entry.lh;
+  }
+  const round = (n) => Math.round(n * 100) / 100;
+  const branches = round(100 * brh / brf);
+  const functions = round(100 * fnh / fnf);
+  const lines = round(100 * lh / lf);
+  const max = Math.max(branches, functions, lines);
+  const avg = round((branches + functions + lines) / 3);
+  return {
+    brf,
+    brh,
+    fnf,
+    fnh,
+    lf,
+    lh,
+    branches,
+    functions,
+    lines,
+    avg,
+    max
+  };
+};
+var LCOV = {
+  parse,
+  stringify: format,
+  format
+};
+var defaultBadgeOptions = {
+  color: "auto",
+  title: "coverage",
+  pick: "max",
+  url: "",
+  style: "flat",
+  gaps: [
+    [95, "brightgreen"],
+    [90, "green"],
+    [80, "yellowgreen"],
+    [70, "yellow"],
+    [60, "orange"],
+    [0, "red"]
+  ]
+};
+var badgeJson = (lcov, opts = {}) => {
+  var _a;
+  const _opts = __spreadValues(__spreadValues({}, defaultBadgeOptions), opts);
+  const { color, style, url, title, pick, gaps } = _opts;
+  const digest = typeof lcov === "object" && "max" in lcov ? lcov : sum(lcov);
+  const value = digest[pick];
+  const _color = !color || color === "auto" ? ((_a = gaps.find(([gap]) => value >= gap)) == null ? void 0 : _a[1]) || "red" : color;
+  return {
+    schemaVersion: 1,
+    color: _color,
+    label: title,
+    message: value + "",
+    style,
+    url
+  };
+};
+var badge = (lcov, opts = {}) => {
+  const { label, message, color, style, url } = badgeJson(lcov, opts);
+  return `[![${label}](https://img.shields.io/badge/${label}-${message}-${color}?style=${style})](${url})`;
+};
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
+
+
 /***/ })
 
 /******/ 	});
@@ -31157,23 +31737,26 @@ var __webpack_exports__ = {};
 var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const node_child_process_1 = __nccwpck_require__(7718);
 const core_1 = __nccwpck_require__(5969);
+const analyze_1 = __nccwpck_require__(1568);
+const coverage_1 = __nccwpck_require__(3918);
+const test_1 = __nccwpck_require__(9685);
 const github_1 = __nccwpck_require__(2262);
 const comment_1 = __nccwpck_require__(4752);
 const run = async () => {
     const token = process.env.GITHUB_TOKEN || (0, core_1.getInput)("token");
     const octokit = (0, github_1.getOctokit)(token);
-    // startGroup("Set up Flutter");
-    // execSync("flutter pub get");
-    // execSync("dart format . -l 120");
-    // execSync("dart fix --apply");
-    // endGroup();
-    // const oldCoverage: number = getOldCoverage();
-    // const analyzeStr: stepResponse = getAnalyze();
-    // const testStr: stepResponse = getTest();
-    // const coverageStr: stepResponse = getCoverage(oldCoverage);
-    // const comment = createComment(analyzeStr, testStr, coverageStr);
-    const comment = `Test comment</br>${new Date().toLocaleTimeString("en-GB")}</br><sub>Created with <a href='https://github.com/ZebraDevs/flutter-code-quality'>Flutter code quality action</a></sub>`;
+    (0, core_1.startGroup)("Set up Flutter");
+    (0, node_child_process_1.execSync)("flutter pub get");
+    (0, node_child_process_1.execSync)("dart format . -l 120");
+    (0, node_child_process_1.execSync)("dart fix --apply");
+    (0, core_1.endGroup)();
+    const oldCoverage = (0, coverage_1.getOldCoverage)();
+    const analyzeStr = (0, analyze_1.getAnalyze)();
+    const testStr = (0, test_1.test)();
+    const coverageStr = (0, coverage_1.coverage)(oldCoverage);
+    const comment = (0, comment_1.createComment)(analyzeStr, testStr, coverageStr);
     (0, comment_1.postComment)(octokit, comment, github_1.context);
 };
 run();
