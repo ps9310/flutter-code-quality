@@ -1,0 +1,11 @@
+name: "Flutter code quality"
+description: "Analyzes and formats Flutter repositories"
+author: "Luke Walton; Zebra Technologies"
+runs:
+  using: "node20"
+  main: "dist/main.js"
+
+inputs:
+  token:
+    description: "Token used for pushing fixes and commenting on PRs"
+    required: true
