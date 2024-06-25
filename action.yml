@@ -3,7 +3,7 @@ description: "Analyzes and formats Flutter repositories"
 author: "Luke Walton; Zebra Technologies"
 runs:
   using: "node20"
-  main: "dist/main.js"
+  main: "dist/index.js"
 
 inputs:
   token:
