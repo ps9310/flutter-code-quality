@@ -5,6 +5,7 @@ import { stepResponse } from "../main";
 
 export const ANALYZE_SUCCESS = "✅ - Static analysis passed";
 export const ANALYZE_FAILURE = "⛔️ - Static analysis failed";
+const ANALYZE_PASS_LOG = "No issues found!";
 
 export type analyzeDetails = { file: string; details: string };
 
@@ -20,7 +21,12 @@ export const getAnalyze = async (): Promise<stepResponse> => {
         stdout: (data) => (stdout += data.toString()),
       },
     });
-    response = { output: ANALYZE_SUCCESS, error: false };
+
+    if (stdout.includes(ANALYZE_PASS_LOG)) {
+      response = { output: ANALYZE_SUCCESS, error: false };
+    } else {
+      throw new Error("Issues found");
+    }
   } catch (error) {
     const arr = stdout.trim().split("\n");
 

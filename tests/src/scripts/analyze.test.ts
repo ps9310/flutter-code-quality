@@ -20,6 +20,21 @@ test("getAnalyze on passing repo", async () => {
   process.chdir("../..");
 }, 30000);
 
+test("getAnalyze on passing repo", async () => {
+  process.chdir("tests/pass_warnings_repo");
+  const result: stepResponse = await getAnalyze();
+
+  expect(result).toBeDefined();
+  expect(result).toHaveProperty("error");
+  expect(result).toHaveProperty("output");
+  expect(result.error).toBe(true);
+  expect(result.output.includes(ANALYZE_FAILURE)).toBe(true);
+
+  // expect(result.output).toBe(ANALYZE_SUCCESS);
+
+  process.chdir("../..");
+}, 30000);
+
 test("getAnalyze on failing repo", async () => {
   process.chdir("tests/fail_repo");
   const result: stepResponse = await getAnalyze();
