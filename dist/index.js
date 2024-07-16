@@ -33152,6 +33152,11 @@ const behind_1 = __nccwpck_require__(8890);
 const push_1 = __nccwpck_require__(3662);
 const run = async () => {
     try {
+        const workingDirectory = (0, core_1.getInput)('working-directory');
+        // Check if the working directory is different from the current directory
+        if (workingDirectory && workingDirectory !== process.cwd()) {
+            process.chdir(workingDirectory);
+        }
         const token = process.env.GITHUB_TOKEN || (0, core_1.getInput)("token");
         const runTests = (0, core_1.getBooleanInput)("run-tests");
         const runAnalyze = (0, core_1.getBooleanInput)("run-analyze");
