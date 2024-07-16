@@ -10,6 +10,11 @@ inputs:
     description: "Token used for pushing fixes and commenting on PRs"
     required: true
 
+  working-directory:
+    description: "The working directory"
+    required: false
+    default: "."
+
   run-tests:
     description: "Run tests"
     required: false
