@@ -29,15 +29,15 @@ jobs:
 
 ## Inputs
 
-| Name           | Description                                                       | Required | default |
-| -------------- | ----------------------------------------------------------------- | -------- | ------- |
-| token          | Token used for pushing fixes and commenting on PRs.               | true     |         |
-| run-tests      | Whether tests should be run.                                      | false    | true    |
-| run-analysis   | Whether static analysis should be run.                            | false    | true    |
-| run-coverage   | Whether code coverage should be run.                              | false    | true    |
-| run-behind-by  | Whether action should check if HEAD branch is behind base branch. | false    | true    |
-| create-comment | Whether the action should comment the output status.              | false    | true    |
-| working-directory | Working directory to run the action in                         | false    | "."     |
+| Name              | Description                                                       | Required | Default |
+| ----------------- | ----------------------------------------------------------------- | -------- | ------- |
+| token             | Token used for pushing fixes and commenting on PRs.               | true     |         |
+| run-tests         | Whether tests should be run.                                      | false    | true    |
+| run-analysis      | Whether static analysis should be run.                            | false    | true    |
+| run-coverage      | Whether code coverage should be run.                              | false    | true    |
+| run-behind-by     | Whether action should check if HEAD branch is behind base branch. | false    | true    |
+| create-comment    | Whether the action should comment the output status.              | false    | true    |
+| working-directory | Working directory to run the action in                            | false    | "."     |
 
 ## Contributing
 
