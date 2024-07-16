@@ -37,6 +37,7 @@ jobs:
 | run-coverage   | Whether code coverage should be run.                              | false    | true    |
 | run-behind-by  | Whether action should check if HEAD branch is behind base branch. | false    | true    |
 | create-comment | Whether the action should comment the output status.              | false    | true    |
+| working-directory | Working directory to run the action in                         | false    | "."     |
 
 ## Contributing
 
