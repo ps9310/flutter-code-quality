@@ -13,6 +13,12 @@ export type stepResponse = { output: string; error: boolean };
 
 const run = async () => {
   try {
+    const workingDirectory = getInput('working-directory');
+    // Check if the working directory is different from the current directory
+    if (workingDirectory && workingDirectory !== process.cwd()) {
+      process.chdir(workingDirectory);
+    }
+    
     const token = process.env.GITHUB_TOKEN || getInput("token");
     const runTests = getBooleanInput("run-tests");
     const runAnalyze = getBooleanInput("run-analyze");
